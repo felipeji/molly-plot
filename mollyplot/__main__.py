@@ -1,0 +1,1 @@
+from .cli import CLIdef main():    CLI().cmdloop()if __name__ == "__main__":    main()

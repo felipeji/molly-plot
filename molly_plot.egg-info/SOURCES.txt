@@ -1,0 +1,10 @@
+setup.py
+molly_plot.egg-info/PKG-INFO
+molly_plot.egg-info/SOURCES.txt
+molly_plot.egg-info/dependency_links.txt
+molly_plot.egg-info/entry_points.txt
+molly_plot.egg-info/requires.txt
+molly_plot.egg-info/top_level.txt
+mollyplot/__init__.py
+mollyplot/__main__.py
+mollyplot/cli.py

@@ -1,0 +1,3 @@
+astropy==5
+cmd2==2.4
+trm.molly@ http://github.com/WarwickAstro/trm-molly/tarball/master#egg=trm.molly-1
