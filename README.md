@@ -6,11 +6,13 @@
 
 ## Requirements
 
-MOLLY-plot works under Python3 
+MOLLY-plot works under Python3. It requires:
 
-It requires trm-molly: https://github.com/WarwickAstro/trm-molly
+    trm-molly (https://github.com/WarwickAstro/trm-molly)
+    astropy 5
+    cmd2 2.4
 
-Others Python modules requiered should be included alongside during installation.
+This dependencies should be included alongside during installation.
 
 
 
