@@ -30,6 +30,7 @@ Lunch MOLLY-plot by runnnig in a terminal:
     mplot
 
 
-## Bugs, inclusions and enhancements
+## Bugs and enhancements
 
-Please comments on the [Wiki](https://github.com/felipeji/molly-plot/wiki)
+The programme is in the development phase. Please leave comments on improvements/bugs in the repository [Wiki](https://github.com/felipeji/molly-plot/wiki) and I will incorporate them as soon as possible.
+
