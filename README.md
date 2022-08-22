@@ -16,7 +16,7 @@ This dependencies should be included alongside during installation.
 
 
 
-### Installation
+## Installation
 
 Once you've downloaded or cloned the repository, in the base directory run:
 
@@ -28,3 +28,8 @@ Once you've downloaded or cloned the repository, in the base directory run:
 Lunch MOLLY-plot by runnnig in a terminal:
 
     mplot
+
+
+## Bugs, inclusions and enhancements
+
+Please comments on the [Wiki](https://github.com/felipeji/molly-plot/wiki)
