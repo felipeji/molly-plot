@@ -1,21 +1,8 @@
 #!/usr/bin/env python3
-from astropy import units as u
-from astropy.coordinates import SpectralCoord
-import numpy as np
-from trm.molly import rmolly 
-import cmd2
-
+from cmd2 import Cmd
 import os
-
-# Default matplotlib color list for ploting in loop
-import matplotlib.pyplot as plt
-# Fuente tipo latex
-# plt.rc('text', usetex=True)
-plt.rc("font", family="serif")
-plt.ion()
-
-color = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
-
+from ancillary import *
+from plotting import main_plot
 
 
 # Las siguiente dos lineas son para que no pete el MATPLOTLIB fuera de ANACONDA
@@ -23,218 +10,29 @@ import matplotlib
 matplotlib.use("Qt5Agg")
 # ['GTK3Agg', 'GTK3Cairo', 'MacOSX', 'nbAgg', 'Qt4Agg', 'Qt4Cairo', 'Qt5Agg',
 # 'Qt5Cairo', 'TkAgg', 'TkCairo', 'WebAgg', 'WX', 'WXAgg', 'WXCairo', 'agg',
-#'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
+# 'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
 
-
-
-
-"""
-# =============================================================================
-# Installation neededs
-# =============================================================================
-
-conda create --name molly-plot python=3.8
-conda install astropy=5
-conda install -c conda-forge cmd2
-
-# Install trm
-
-pip install git+https://github.com/WarwickAstro/trm-molly.git#egg=trm-molly
-
-
-"""
-
-
-
-
-
+import matplotlib.pyplot as plt
+plt.rc("font", family="serif")
+plt.ion()
 
 
 print("# ==================================================================")
-print("")
 print(" #     #                                 ######            ")
 print(" ##   ##  ####  #      #      #   #      #     # #       ####  #####")
 print(" # # # # #    # #      #       # #       #     # #      #    #   #  ")
 print(" #  #  # #    # #      #        #   ###  ######  #      #    #   #  ")
 print(" #     # #    # #      #        #        #       #      #    #   #  ")
-print(" #     # #    # #      #        #        #       #      #    #   #  ")
 print(" #     #  ####  ###### ######   #        #       ######  ####    #  ")
-print("")
 print("# ==================================================================")
 
-# alias mplot /Users/felipe/MollyPlot/molly-plot.py
-
-
-# ==============================================================================
-# Ancillary functions
-# ==============================================================================
-
-
-def catch_inpunt(v_dict, inps):
-    """
-    Dada una lista de diccionario de variables y una lista de imputs
-    
-    list = ["variable_name": {message: 'message to be printed', default: 1},
-            "variable_name": {message: 'message to be printed', default: 1},
-           ]
-    The order in the list is important. Elements are readed in the list order
-    """
-    inputs = {}
-    for index, v_name in enumerate(v_dict):
-        message = v_dict[v_name]["message"]
-        default = v_dict[v_name]["default"]
-        try:
-            inputs[v_name] = inps[index]
-        except:
-            inputs[v_name] = input(message) or default
-
-    return inputs
-
-
-def loader(fname, slots, first, last, start):
-    # Try reading the file
-    try:
-        readed = rmolly(fname)[start - 1 :]
-    except:
-        print("Could not open " + fname)
-
-    # Loading spec in the dictionary container
-    readed_spectra = 0
-    for index in range(last - first + 1):
-        # try for prevent an error when reading empty slots
-        try:
-            slot_n = first + index
-            slots[slot_n] = readed[index]
-            # Print short header info
-            readed_spectra += 1
-            short_header(slots[slot_n], slot_n)
-        except:
-            pass
-    if readed_spectra != 0:
-        print(" Read           " + str(readed_spectra) + "  spectra from " + fname)
-
-
-def short_header(spect, slot):
-    "Print shor header in the MOLLY style "
-    obj = spect.head["Object"]
-    run = spect.head["Run"]
-    exp = spect.head["Dwell"]
-    # date
-    d = "{:02d}".format(spect.head["Day"])
-    m = "{:02d}".format(spect.head["Month"])
-    y = str(spect.head["Year"])
-    date = d + "/" + m + "/" + y
-    # Time
-    t = spect.head["UTC"]
-    h = int(t)
-    m = (t * 60) % 60
-    s = (t * 3600) % 60
-    time = "%02d:%02d:%02d" % (h, m, s)
-    print(
-        "   ", slot, ", obj: ", obj, ", run ", run, " exp: ", exp, " time: ", date, time
-    )
-
-
-# xa
-
-
-def main_plot(spect, color, slot_n, x_ax, doppler_rest, offset, vline, hline):
-    "Main Plot routine"
-    x_u = SpectralCoord(spect.wave * u.angstrom)  # X-axis with units
-
-    ax = {
-        "a": x_u.value,
-        "km/s": x_u.to(
-            u.km / u.s,
-            doppler_convention="optical",
-            doppler_rest=doppler_rest * u.angstrom,
-        ).value,
-        "p": np.arange(len(x_u.value)) + 1,
-    }
-
-    x = ax[x_ax]
-    y = spect.f + offset
-    error = spect.fe
-
-    plt.fill_between(x, y - error, y + error, color=color, step="mid", alpha=0.3, lw=0)
-    plt.step(x, y, where="mid", lw=0.8, color=color, label=str(slot_n))
-
-    # Plot vline
-    if vline != "off":
-        plt.axvline(float(vline), color="k", ls="dashed")
-    # Plot hline
-    if hline != "off":
-        plt.axhline(float(hline), color="k", ls="dashed")
-
-
-def merge(ranges):
-    slots = []
-    for r in ranges:
-        for slot in range(r[0], r[1] + 1):
-            slots.append(slot)
-    slots = np.unique(slots)
-
-    return slots
-
-
-def pick():
-    "Roting for picking spectra"
-    print("# ==========================")
-    print(" Picking spectra to plot")
-    print("# ==========================")
-    list_inputs = []
-    inp = None
-    while inp != "q" and inp != "0,0":
-        inp = input("Enter series of slot ranges (0,0, for ending the selection): ")
-        try:
-            tpl = eval(inp)
-            list_inputs.append(tpl)
-
-        except:
-            pass
-    print("  ***  Entry finished  ***\n")
-    selected = merge(list_inputs)
-    return selected
-
-
-# =============================================================================
-# Class for using abbreviations. We should NOT used it in the future
-# =============================================================================
-class AbbrevMixin:
-    """A cmd2 plugin (mixin class) which adds support for abbreviated commands."""
-
-    def __init__(self, *args, **kwargs):
-        "Initialize this plugin."
-        # code placed here runs before cmd2 initializes
-        super().__init__(*args, **kwargs)
-        # code placed here runs after cmd2 initializes
-        # this is where you register any hook functions
-        self.add_settable(
-            cmd2.Settable("abbrev", bool, "Accept command abbreviations", self)
-        )
-        self.register_postparsing_hook(self.cmd2_abbrev_hook)
-
-    def cmd2_abbrev_hook(
-        self, data: cmd2.plugin.PostparsingData
-    ) -> cmd2.plugin.PostparsingData:
-        """Postparsing hook which interprets abbreviated command names."""
-        target = "do_" + data.statement.command
-        if target not in dir(self):
-            # check if the entered command might be an abbreviation
-            cmds = self.get_all_commands()
-            funcs = [func for func in cmds if func.startswith(data.statement.command)]
-            if len(funcs) == 1:
-                raw = data.statement.raw.replace(data.statement.command, funcs[0], 1)
-                data.statement = self.statement_parser.parse(raw)
-        return data
-
 
 # ==============================================================================
 
 
-class CLI(AbbrevMixin, cmd2.Cmd):
+class CLI(AbbrevMixin, Cmd):
     # Path autocomplete
-    complete_load = cmd2.Cmd.path_complete
+    complete_load = Cmd.path_complete
 
     # Intro
     prompt = "molly-plot> "
@@ -244,7 +42,7 @@ class CLI(AbbrevMixin, cmd2.Cmd):
         super().__init__()
 
         # This is the container dictionary for the espectra. Spectra are indexes
-        # with key following natural notation i.e. starting with 1
+        # with key following natural notation (i.e. starting with 1).
         self.slots = {}
 
         # ===================
@@ -267,13 +65,13 @@ class CLI(AbbrevMixin, cmd2.Cmd):
         self.hline = "off"
 
         # axes
-        self.x_ax = "a"
+        self.x_units = "a"
         self.y_ax = "counts"
-        self.doppler_rest = 6562.760  # Halpha
-        
+        self.doppler_rest = 6562.760  # Default Halpha
+
         # Hide command unused
-        self.hidden_commands += ['alias', 'edit', 'history', 'macro', 'py', 
-                                 'run_pyscript', 'run_script', 'set', 'shell', 
+        self.hidden_commands += ['alias', 'edit', 'history', 'macro', 'py',
+                                 'run_pyscript', 'run_script', 'set', 'shell',
                                  'shortcuts']
 
     # ==============================================================================
@@ -354,11 +152,11 @@ class CLI(AbbrevMixin, cmd2.Cmd):
     def do_axes(self, inp):
         inps = inp.split()
         variables = {
-            "x_ax": {"message": "X axis type [a]: ", "default": "a"},
+            "x_units": {"message": "X axis type [a]: ", "default": "a"},
             "y_ax": {"message": "Y axis type [counts]: ", "default": "counts"},
-        }
+                    }
         inputs = catch_inpunt(variables, inps)
-        self.x_ax = inputs["x_ax"]
+        self.x_units = inputs["x_units"]
         self.y_ax = inputs["y_ax"]
 
         """
@@ -392,100 +190,46 @@ class CLI(AbbrevMixin, cmd2.Cmd):
     # Plot
     # ==============================================================================
     def do_plot(self, inp):
+        # Set fancy name in the figure frame
+        plt.figure("MOLLY-plot")
+
+        # Slots selection
 
         inps = inp.split()
         plot_variables = {
             "first": {"message": "First slot to plot [1]: ", "default": 1},
             "last": {"message": "Last slot to plot [1]: ", "default": 1},
-            "limits": {
-                "message": "Enter plot limits (Left,Right, Bottom,Top): ",
-                "default": "0,0,0,0",
-            },
-        }
+            "limits": {"message": "Enter plot limits (Left,Right, Bottom,Top): ","default": "0,0,0,0"},
+                        }
 
         inputs = catch_inpunt(plot_variables, inps)
 
-        # Selection of the spectra
         # Asignamos los imputs a las variables y le damos el tipo esperado
 
         first = int(inputs["first"])
         last = int(inputs["last"])
 
         if first == 0 and last == 0:
-            selected_slots = pick()
+            selection = pick()
         else:
-            selected_slots = np.arange(first, last + 1)  # range of selected slots
+            selection = np.arange(first, last + 1)  # range of selected slots
 
         limits = eval(inputs["limits"])
 
         # For km/s axes
-        if self.x_ax == "km/s":
+        if self.x_units == "km/s":
             try:
                 self.doppler_rest = float(input("Central wavelength [6562.760]: "))
             except:
                 self.doppler_rest = 6562.760
 
-        # =====================================================================
-        # Figure
-        # =====================================================================
+        # Actual plot
         plt.figure("MOLLY-plot")
 
-        plt.clf()
+        # Dictionary with the selected slots to plot
+        selected_slots = dict_slicer(self.slots, selection)
+        main_plot(selected_slots, self.x_units, self.doppler_rest, self.offset, self.vline, self.hline,limits)
 
-        for index, slot in enumerate(selected_slots):
-            try:
-                main_plot(
-                    self.slots[slot],
-                    color[slot % 10],
-                    slot,
-                    self.x_ax,
-                    self.doppler_rest,
-                    offset=index * float(self.offset),
-                    vline=self.vline,
-                    hline=self.hline,
-                )
-
-                short_header(self.slots[slot], slot)
-            except:
-                print("Spectrum           " + str(slot) + "  skipped. Invalid format")
-
-        # Limits
-        l = limits[0]
-        r = limits[1]
-        b = limits[2]
-        t = limits[3]
-
-        # x limits
-        if not (l == 0 and r == 0):
-            plt.xlim(l, r)
-
-        if not (b == 0 and t == 0):
-            plt.ylim(b, t)
-
-        # Labels
-        x_label = {"a": "Wavelenght ($\AA$)", "km/s": "km/s", "p": "Pixel"}
-
-        plt.xlabel(x_label[self.x_ax], size=15)
-        plt.ylabel("Counts", size=15)
-
-        # Legends
-        ncol = int(np.ceil(len(selected_slots) / 25))  # 25 leyendas por culumna
-        plt.legend(
-            bbox_to_anchor=(1.05, 1),
-            loc="upper left",
-            fontsize="small",
-            ncol=ncol,
-            title="Slots",
-            handlelength=0.5,
-            markerscale=4,
-        )
-
-        plt.tight_layout()
-        plt.draw()
-
-    # ==============================================================================
-    # vline
-    # ==============================================================================
     def do_vline(self, inp):
 
         inps = inp.split()
@@ -523,7 +267,7 @@ class CLI(AbbrevMixin, cmd2.Cmd):
 
         while inp != "q" and line != "":
             f = open(info_file_path, "r")
-            chunk = f.readlines()[25 * index : (25 * index) + 25]
+            chunk = f.readlines()[25 * index: (25 * index) + 25]
             for line in chunk:
                 line = line.strip("\n")
                 print(line)
@@ -537,8 +281,6 @@ class CLI(AbbrevMixin, cmd2.Cmd):
     # ==============================================================================
     def emptyline(self):
         pass
-
-
 
 
 """
