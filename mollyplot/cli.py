@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from cmd2 import Cmd
 import os
-from ancillary import *
-from plotting import main_plot
+from .ancillary import *
+from .plotting import main_plot
 
 
 # Las siguiente dos lineas son para que no pete el MATPLOTLIB fuera de ANACONDA
@@ -29,7 +29,6 @@ print("# ==================================================================")
 
 # ==============================================================================
 
-
 class CLI(AbbrevMixin, Cmd):
     # Path autocomplete
     complete_load = Cmd.path_complete
@@ -45,29 +44,65 @@ class CLI(AbbrevMixin, Cmd):
         # with key following natural notation (i.e. starting with 1).
         self.slots = {}
 
+        # Diccionario con los mesages a mostrar por cada variable
+
+        self.messages = {}
+
         # ===================
         # Default values
         # =================
 
         # load
         self.fname = "spectrum"
-        self.start_l = 1
         self.first_l = 1
         self.last_l = 1
+        self.start_l = 1
+        # messages
+        self.messages['load'] = [
+            "File name",
+            "First slot to read into",
+            "Last slot to read into",
+            "Start spectrum in file",
+            ]
 
         # offset
         self.offset = 0
+        # messages
+        self.messages['offset'] = ["Offset between spectra"]
+
+        # plot
+        self.first = 1
+        self.last = 1
+        self.limits = "0,0,0,0"
+        # messages
+        self.messages['plot'] = [
+            "First slot to plot",
+            "Last slot to plot",
+            "Enter plot limits (Left,Right, Bottom,Top)"
+            ]
+
 
         # vline
         self.vline = "off"
+        # messages
+        self.messages['vline'] = ["Plot a vertical line at"]
 
         # hline
         self.hline = "off"
+        # messages
+        self.messages['hline'] = ["Plot a vertical line at"]
+
 
         # axes
         self.x_units = "a"
         self.y_ax = "counts"
         self.doppler_rest = 6562.760  # Default Halpha
+        # messages
+        self.messages['axes'] = [
+            "X axis type",
+            "Y axis type"
+            ]
+
 
         # Hide command unused
         self.hidden_commands += ['alias', 'edit', 'history', 'macro', 'py',
@@ -77,87 +112,29 @@ class CLI(AbbrevMixin, Cmd):
     # ==============================================================================
     #  Load the spectra
     # ==============================================================================
-    def do_load(self, inp):
-        "Load .mol spectra into slots"
-
-        # Set default values
-        fname = self.fname
-        start = self.start_l
-        first = self.first_l
-        last = self.last_l
-
-        # Catching variables from terminal
+    def do_load(self,inp):
         inps = inp.split()
 
-        variables = {
-            "fname": {"message": "File name [" + str(fname) + "]: ", "default": fname},
-            "first": {
-                "message": "First slot to read into [" + str(start) + "]: ",
-                "default": first,
-            },
-            "last": {
-                "message": "Last slot to read into [" + str(last) + "]: ",
-                "default": last,
-            },
-            "start": {
-                "message": "Start spectrum in file [" + str(start) + "]: ",
-                "default": start,
-            },
-        }
-
-        inputs = catch_inpunt(variables, inps)
-
-        # Read imputs setting expected type (default are str)
-        fname = inputs["fname"]
-        # Check and fix extension
-        if not (fname.endswith(".mol")):
-            fname = fname + ".mol"
-
-        first = int(inputs["first"])
-        last = int(inputs["last"])
-        start = int(inputs["start"])
-
-        # Set global values
-        self.fname = fname
-        self.start_l = start
-        self.first_l = first
-        self.last_l = last
+        self.fname, self.first_l, self.last_l, start_l = catch_input([self.fname, self.first_l, self.last_l, self.start_l],
+                                                                     self.messages['load'],
+                                                                     inps)
 
         # Load, read, and storage selected spectra into slots dictionary
-        loader(fname, self.slots, first, last, start)
+        loader(self.fname, self.slots, self.first_l, self.last_l, self.start_l)
 
     # ==============================================================================
     # offset
     # ==============================================================================
     def do_offset(self, inp):
-
-        # Set default values
-        offset = self.offset
-
         inps = inp.split()
-        variables = {
-            "off": {
-                "message": "Offset between spectra [" + str(offset) + "]: ",
-                "default": offset,
-            },
-        }
-        inputs = catch_inpunt(variables, inps)
-
-        # Set global value
-        self.offset = inputs["off"]
+        self.offset = catch_input([self.offset], self.messages['offset'], inps)[0]
 
     # ==============================================================================
     # axes
     # ==============================================================================
     def do_axes(self, inp):
         inps = inp.split()
-        variables = {
-            "x_units": {"message": "X axis type [a]: ", "default": "a"},
-            "y_ax": {"message": "Y axis type [counts]: ", "default": "counts"},
-                    }
-        inputs = catch_inpunt(variables, inps)
-        self.x_units = inputs["x_units"]
-        self.y_ax = inputs["y_ax"]
+        self.x_units, self.y_ax =  catch_input([self.x_units, self.y_ax], self.messages['axes'], inps)
 
         """
         molly> axes 9
@@ -190,31 +167,18 @@ class CLI(AbbrevMixin, Cmd):
     # Plot
     # ==============================================================================
     def do_plot(self, inp):
-        # Set fancy name in the figure frame
-        plt.figure("MOLLY-plot")
-
-        # Slots selection
-
         inps = inp.split()
-        plot_variables = {
-            "first": {"message": "First slot to plot [1]: ", "default": 1},
-            "last": {"message": "Last slot to plot [1]: ", "default": 1},
-            "limits": {"message": "Enter plot limits (Left,Right, Bottom,Top): ","default": "0,0,0,0"},
-                        }
 
-        inputs = catch_inpunt(plot_variables, inps)
-
-        # Asignamos los imputs a las variables y le damos el tipo esperado
-
-        first = int(inputs["first"])
-        last = int(inputs["last"])
-
-        if first == 0 and last == 0:
+        self.first, self.last, self.limits = catch_input([self.first, self.last, self.limits],
+                                                         self.messages['plot'],
+                                                         inps)
+        # Enter picking mode
+        if self.first == 0 and self.last == 0:
             selection = pick()
         else:
-            selection = np.arange(first, last + 1)  # range of selected slots
+            selection = np.arange(self.first, self.last + 1)  # range of selected slots
 
-        limits = eval(inputs["limits"])
+
 
         # For km/s axes
         if self.x_units == "km/s":
@@ -223,37 +187,25 @@ class CLI(AbbrevMixin, Cmd):
             except:
                 self.doppler_rest = 6562.760
 
-        # Actual plot
-        plt.figure("MOLLY-plot")
-
         # Dictionary with the selected slots to plot
         selected_slots = dict_slicer(self.slots, selection)
+        # mMin plot
+        limits = eval(self.limits)
         main_plot(selected_slots, self.x_units, self.doppler_rest, self.offset, self.vline, self.hline,limits)
 
+    # ==============================================================================
+    # vline
+    # ==============================================================================
     def do_vline(self, inp):
-
         inps = inp.split()
-        vline_variables = {
-            "vline": {
-                "message": "Plot a vertical line at [" + str(self.vline) + "]: ",
-                "default": self.vline,
-            },
-        }
-        self.vline = catch_inpunt(vline_variables, inps)["vline"]
+        self.vline = catch_input([self.vline], self.messages['vline'], inps)[0]
 
     # ==============================================================================
     # hline
     # ==============================================================================
     def do_hline(self, inp):
-
         inps = inp.split()
-        hline_variables = {
-            "hline": {
-                "message": "Plot a vertical line at [" + str(self.hline) + "]: ",
-                "default": self.hline,
-            },
-        }
-        self.hline = catch_inpunt(hline_variables, inps)["hline"]
+        self.hline = catch_input([self.hline], self.messages['hline'], inps)[0]
 
     # =============================================================================
     # INFO

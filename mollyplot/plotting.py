@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 from astropy import units as u
 from astropy.coordinates import SpectralCoord
-from ancillary import short_header
+from .ancillary import short_header
 import numpy as np
 
 
 def main_plot(selected_slots, x_units, doppler_rest, offset, vline, hline, limits):
+
     """
     Main plot routine
 
@@ -27,14 +28,17 @@ def main_plot(selected_slots, x_units, doppler_rest, offset, vline, hline, limit
     # Default matplotlib color list for plotting in loop
     colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
 
+    # Set fancy name in the figure frame
+    plt.figure("MOLLY-plot")
+
     # Clear previous plot
     plt.clf()
 
     for index, slot in enumerate(selected_slots):
         try:
-            offset = index * float(offset)
             color = colors[slot % 10]
-            slot_plot(selected_slots[slot],slot, offset, x_units, color, doppler_rest)
+            slot_plot(selected_slots[slot], slot, index * offset, x_units, color, doppler_rest)
+
             short_header(selected_slots[slot], slot)
         except:
             print("Spectrum           " + str(slot) + "  skipped. Invalid format")
@@ -60,7 +64,13 @@ def main_plot(selected_slots, x_units, doppler_rest, offset, vline, hline, limit
         plt.ylim(b, t)
 
     # Labels
-    x_label = {"a": "Wavelenght ($\AA$)", "km/s": "km/s", "p": "Pixel"}
+    x_label = {
+        "p": "Pixel",
+        "a": "Wavelenght ($\AA$)",
+        "m": "Wavelenght ($\\mu$m)",
+        "n": "Wavelenght (nm)",
+        "km/s": "km/s",
+               }
 
     plt.xlabel(x_label[x_units], size=15)
     plt.ylabel("Counts", size=15)
@@ -79,7 +89,7 @@ def main_plot(selected_slots, x_units, doppler_rest, offset, vline, hline, limit
     plt.draw()
 
 
-def slot_plot(slot,number,offset,x_units, color, doppler_rest):
+def slot_plot(slot, number, offset, x_units, color, doppler_rest):
     """
     This function plot a single slot spectra.
 
@@ -107,9 +117,12 @@ def slot_plot(slot,number,offset,x_units, color, doppler_rest):
     # X-axis units (default in Angstrom)
     x_angs = SpectralCoord(slot.wave * u.angstrom)
 
-    units_dict = { "a": x_angs.value,
-                   "km/s": x_angs.to(u.km / u.s,doppler_convention="optical",doppler_rest=doppler_rest * u.angstrom).value,
-                   "p": np.arange(len(x_angs.value)) + 1,
+    units_dict = {
+        "p": np.arange(len(x_angs.value)) + 1,
+        "a": x_angs.value,
+        "m": x_angs.to(u.micron).value,
+        "n": x_angs.to(u.m).value*1e+9,
+        "km/s": x_angs.to(u.km / u.s,doppler_convention="optical",doppler_rest=doppler_rest * u.angstrom).value,
                   }
 
     # Read spectrum from slot
@@ -120,9 +133,6 @@ def slot_plot(slot,number,offset,x_units, color, doppler_rest):
     # Plot spectrum and error
     plt.fill_between(x, y - error, y + error, color=color, step="mid", alpha=0.3, lw=0)
     plt.step(x, y, where="mid", lw=0.8, color=color, label=number)
-
-
-
 
 
 

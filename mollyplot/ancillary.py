@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import cmd2
 from trm.molly import rmolly
 
@@ -8,25 +9,28 @@ from trm.molly import rmolly
 # Ancillary functions
 # ==============================================================================
 
-def catch_inpunt(v_dict, inps):
-    """
-    Dada una lista de diccionario de variables y una lista de imputs
 
-    list = ["variable_name": {message: 'message to be printed', default: 1},
-            "variable_name": {message: 'message to be printed', default: 1},
-           ]
-    The order in the list is important. Elements are readed in the list order
-    """
-    inputs = {}
-    for index, v_name in enumerate(v_dict):
-        message = v_dict[v_name]["message"]
-        default = v_dict[v_name]["default"]
+def catch_input(variables, messages, inputs):
+    new_values = []
+    for index, variable in enumerate(variables):
+        default = variable
+        message = messages[index] + " ["+str(default)+"]: "
         try:
-            inputs[v_name] = inps[index]
+            catched = inputs[index]
         except:
-            inputs[v_name] = input(message) or default
+            catched = input(message) or default
 
-    return inputs
+        # Checkig types:
+        try:
+            catched = float(catched)
+
+            if math.modf(catched)[0] == 0:
+                catched = int(catched)
+        except:
+            pass
+        new_values.append(catched)
+    return new_values
+
 
 
 def loader(fname, slots, first, last, start):
