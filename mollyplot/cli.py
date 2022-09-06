@@ -7,7 +7,7 @@ from .plotting import main_plot
 
 # Las siguiente dos lineas son para que no pete el MATPLOTLIB fuera de ANACONDA
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 # ['GTK3Agg', 'GTK3Cairo', 'MacOSX', 'nbAgg', 'Qt4Agg', 'Qt4Cairo', 'Qt5Agg',
 # 'Qt5Cairo', 'TkAgg', 'TkCairo', 'WebAgg', 'WX', 'WXAgg', 'WXCairo', 'agg',
 # 'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
